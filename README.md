@@ -1,55 +1,72 @@
-# Lab Inventory Management System
+# Lab Inventory Dashboard — Raspberry Pi Template
 
-Public, read-only lab inventory viewer with real-time updates, search, sort, and Excel export. Data is managed by repo contributors directly via backend scripts.
+A plug-and-play lab inventory dashboard you can self-host on a Raspberry Pi in minutes. Drop in your Excel sheet, swap the logo and name, and it's ready to serve your whole office over LAN — no cloud, no subscriptions.
 
-## Features
+## What you get
 
-- Browse all inventory items in a searchable, sortable table
-- Dashboard with total items and category counts
-- Activity log showing recent changes
-- Export inventory to Excel
-- Real-time updates via WebSocket (changes appear instantly for all viewers)
-- Dark mode toggle
+- Searchable, sortable inventory table
+- Dashboard with item counts by category
+- Activity log of recent changes
+- One-click Excel export
+- Real-time updates via WebSocket (all viewers see changes instantly)
+- Dark tactical UI — works great on a wall-mounted screen
 
-## Tech Stack
+**Tech stack:** React + Vite + Tailwind CSS · Node.js + Express + SQLite + Socket.IO
 
-- **Frontend:** React + Vite + Tailwind CSS + Socket.IO Client
-- **Backend:** Node.js + Express + Sequelize + SQLite + Socket.IO
+---
 
-## Setup (Local Development)
+## Customise for your lab (3 steps)
 
-### Backend
+### 1. Add your logo
+
+Drop your logo file into `frontend/public/` and update the two references in the source:
+
+```
+frontend/src/components/Layout.jsx      ← header logo
+frontend/src/components/WelcomeGate.jsx ← login screen logo
+```
+
+Replace the `<span className="material-symbols-outlined ...">inventory_2</span>` icon with:
+
+```jsx
+<img src="/your-logo.png" alt="Your Lab" className="h-9 w-9 object-contain" />
+```
+
+### 2. Set your lab name
+
+In the same two files above, change `"LAB INVENTORY"` and `"Management System"` to whatever you like.
+
+### 3. Upload your inventory Excel
+
+Your spreadsheet should have these columns:
+
+| Column | Description |
+|---|---|
+| `PART No / DESCRIPTION` | Item name |
+| `QTY` | Quantity (numbers, ranges like `3+2`, or `∞`) |
+| `location` | Room / rack / shelf |
+| `Placement` | Optional secondary location detail |
+
+Save it as `inventory_update.xlsx` in the project root, then run:
 
 ```bash
 cd backend
-cp .env.example .env
-npm install
-npm run dev
+node import-excel.js
 ```
 
-For local dev with Vite, set:
-
-```env
-PORT=4000
-CLIENT_URL=http://localhost:5173
-```
-
-### Frontend
+The dashboard auto-categorizes items by name (resistors, cables, tools, etc.). To re-run categorization after edits:
 
 ```bash
-cd frontend
-cp .env.example .env
-npm install
-npm run dev
+node categorize.js
 ```
 
-Open `http://localhost:5173` — no login needed.
+That's it — your inventory is live.
 
-## Raspberry Pi (Office LAN, Single Port)
+---
 
-Run the app on Raspberry Pi and serve frontend + backend from one URL.
+## Deploy on Raspberry Pi
 
-### 1) Copy project to Pi
+### 1. Copy project to Pi
 
 ```bash
 rsync -avz --exclude node_modules --exclude "*.db" \
@@ -57,44 +74,44 @@ rsync -avz --exclude node_modules --exclude "*.db" \
   pi@<PI_IP>:/home/pi/lab-inventory/
 ```
 
-### 2) Install Node.js + dependencies on Pi
+### 2. Install Node.js on Pi
 
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_18.x | sudo bash -
 sudo apt-get install -y nodejs
+```
 
+### 3. Install dependencies
+
+```bash
 cd /home/pi/lab-inventory/backend && npm install
 cd /home/pi/lab-inventory/frontend && npm install
 ```
 
-### 3) Configure env on Pi
+### 4. Configure environment
 
-`/home/pi/lab-inventory/backend/.env`
-
+`backend/.env`
 ```env
 PORT=4000
 CLIENT_URL=http://<PI_IP>:4000
 ```
 
-`/home/pi/lab-inventory/frontend/.env`
-
+`frontend/.env`
 ```env
 VITE_API_URL=http://<PI_IP>:4000/api
 VITE_SOCKET_URL=http://<PI_IP>:4000
 ```
 
-### 4) Build frontend and run backend
+### 5. Build and start
 
 ```bash
 cd /home/pi/lab-inventory/frontend && npm run build
 cd /home/pi/lab-inventory/backend && npm run start
 ```
 
-Then open:
+Open `http://<PI_IP>:4000` from any device on the same network.
 
-`http://<PI_IP>:4000`
-
-### 5) Keep app running with PM2 (recommended)
+### 6. Keep it running with PM2
 
 ```bash
 sudo npm install -g pm2
@@ -104,50 +121,38 @@ pm2 save
 pm2 startup
 ```
 
-Run the printed `pm2 startup` command once, then reboot test:
+Run the printed `pm2 startup` command once, then test with `sudo reboot`.
+
+---
+
+## Local development
 
 ```bash
-sudo reboot
+# Backend
+cd backend && cp .env.example .env && npm install && npm run dev
+
+# Frontend (separate terminal)
+cd frontend && cp .env.example .env && npm install && npm run dev
 ```
 
-## API Endpoints
+Set `CLIENT_URL=http://localhost:5173` in `backend/.env` for local Vite dev.  
+Open `http://localhost:5173`.
+
+---
+
+## API reference
 
 | Method | Path | Description |
 |---|---|---|
 | GET | `/api/items` | List all items |
 | GET | `/api/dashboard` | Dashboard stats |
 | GET | `/api/activity` | Activity log |
-| GET | `/api/export` | Export inventory as `.xlsx` |
+| GET | `/api/export` | Download inventory as `.xlsx` |
 
-## Managing Inventory (for contributors)
+---
 
-Inventory is updated via backend scripts, not through the web UI.
-
-**Import from Excel:**
-
-```bash
-cd backend
-node import-excel.js
-```
-
-**Re-categorize items:**
-
-```bash
-cd backend
-node categorize.js
-```
-
-## Database Schema (SQLite)
+## Database schema (SQLite)
 
 **Items** — `id`, `name`, `quantity`, `location`, `category`, `lastUpdated`
 
 **ActivityLogs** — `id`, `action`, `details`, `userName`
-
-## LAN Access
-
-1. `hostname -I` to get host IP
-2. Build frontend (`cd frontend && npm run build`)
-3. Set `CLIENT_URL=http://<IP>:4000` in `backend/.env`
-4. Start backend (`cd backend && npm run start`)
-5. Colleagues open `http://<IP>:4000`
- 
