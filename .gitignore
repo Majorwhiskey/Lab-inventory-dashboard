@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+!.env.example
+
+# Database
+*.db
+*.sqlite
+
+# Build output
+frontend/dist/
+
+# Excel data files
+*.xlsx
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Company assets & sensitive reference files
+PIcs/
+stitch-reference/
+frontend/public/SSS_Logo.png
+backend/data/visitorNames.json
